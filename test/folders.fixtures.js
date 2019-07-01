@@ -2,15 +2,15 @@ function makeFoldersArray() {
   return [
     {
       id: 1,
-      name: 'Test'
+      folder_name: 'Test',
     },
     {
       id: 2,
-      name: 'Dummy'
+      folder_name: 'Dummy',
     },
     {
       id: 3,
-      name: 'Garbage'
+      folder_name: 'Garbage',
     },
   ];
 }
@@ -18,11 +18,11 @@ function makeFoldersArray() {
 function makeMaliciousFolder() {
   const maliciousFolder = {
     id: 911,
-    name: 'Bad <script>alert("xss");</script>'
+    folder_name: 'Bad <script>alert("xss");</script>'
   }
   const expectedFolder = {
     ...maliciousFolder,
-    name: 'Bad &lt;script&gt;alert(\"xss\");&lt;/script&gt;'
+    folder_name: 'Bad &lt;script&gt;alert(\"xss\");&lt;/script&gt;'
   }
   return {
     maliciousFolder,
