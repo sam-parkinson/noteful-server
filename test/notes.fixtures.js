@@ -39,7 +39,7 @@ function makeNotesArray() {
 }
 
 function makeMaliciousNote() {
-  const maliciousNote = { // update with xss attack
+  const maliciousNote = {
     id: 911,
     note_name: 'Bad dogs <script>alert("xss");</script>',
     modified: '2019-01-03T00:00:00.000Z',
