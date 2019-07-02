@@ -22,6 +22,27 @@ foldersRouter
       })
       .catch(next);
   })
+  .post(jsonParser, (req, res, next) => {
+    const { folder_name } = req.body;
+    const newFolder = { folder_name }
+    if (!folder_name) {
+      return res.status(400).json({
+        error: { message: `Missing folder name in request body` }
+      })
+    }
+
+    FoldersService.insertFolder(
+      req.app.get('db'),
+      newFolder
+    )
+      .then(folder => {
+        res
+          .status(201)
+          .location(path.posix.join(req.originalUrl, `/${folder.id}`))
+          .json(scrubFolder(folder))
+      })
+      .catch(next)
+  })
 
 foldersRouter
   .route('/:folder_id')
@@ -43,6 +64,35 @@ foldersRouter
   })
   .get((req, res, next) => {
     res.json(scrubFolder(res.folder))
+  })
+  .delete((req, res, next) => {
+    FoldersService.deleteFolder(
+      req.app.get('db'),
+      req.params.folder_id
+    )
+      .then(() => {
+        res.status(204).end()
+      })
+  })
+  .patch(jsonParser, (req, res, next) => {
+    const { folder_name } = req.body;
+    const folderToUpdate = { folder_name };
+
+    if(!folder_name) {
+      return res.status(400).json({
+        error: { message: `Request body must include folder name` }
+      });
+    }
+
+    FoldersService.updateFolder(
+      req.app.get('db'),
+      req.params.folder_id,
+      folderToUpdate
+    )
+      .then(numRowsAffected => {
+        res.status(204).end()
+      })
+      .catch(next)
   })
 
 module.exports = foldersRouter;

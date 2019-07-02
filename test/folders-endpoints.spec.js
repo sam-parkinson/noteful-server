@@ -66,7 +66,7 @@ describe('Folders Endpoints', function() {
     });
   });
 
-  describe.only(`GET /api/folders/:folder_id`, () => {
+  describe(`GET /api/folders/:folder_id`, () => {
     context(`Given no folders`, () => {
       it(`responds with 404`, () => {
         const folder_id = 123456;
@@ -109,6 +109,134 @@ describe('Folders Endpoints', function() {
           .expect(200)
           .expect(res => {
             expect(res.body.folder_name).to.eql(expectedFolder.folder_name)
+          });
+      });
+    });
+  });
+
+  describe(`POST /api/folders`, () => {
+    it(`creates a new folder, responding with 201 and the folder`, () => {
+      const newFolder = {
+        folder_name: 'FooBar'
+      }
+
+      return supertest(app)
+        .post('/api/folders')
+        .send(newFolder)
+        .expect(201)
+        .expect(res => {
+          expect(res.body.folder_name).to.eql(newFolder.folder_name)
+        })
+        .then(res =>
+          supertest(app)
+            .get(`/api/folders/${res.body.id}`)
+            .expect(res.body)
+        )
+    });
+
+    it('responds with 400 and an error message when the folder name is missing', () => {
+      const namelessFolder = {}
+
+      return supertest(app)
+        .post('/api/folders')
+        .send(namelessFolder)
+        .expect(400, {
+          error: { message: `Missing folder name in request body` }
+        });
+    });
+
+    it('removes XSS attack content from response', () => {
+      const { maliciousFolder, expectedFolder } = makeMaliciousFolder();
+      return supertest(app)
+        .post(`/api/folders`)
+        .send(maliciousFolder)
+        .expect(201)
+        .expect(res => {
+          expect(res.body.folder_name).to.eql(expectedFolder.folder_name)
+        });
+    });
+  });
+
+  describe(`DELETE /api/folders/:folder_id`, () => {
+    context(`Given no folders`, () => {
+      it(`responds with 404`, () => {
+        const folder_id = 123456;
+        return supertest(app)
+          .delete(`/api/folders/${folder_id}`)
+          .expect(404, { error: { message: `Folder doesn't exist` } })
+      });
+    });
+
+    context(`Given there are folders in the database`, () => {
+      const testFolders = makeFoldersArray();
+
+      beforeEach('insert folders', () => {
+        return db
+          .into('noteful_folders')
+          .insert(testFolders)
+      });
+
+      it('responds with 204 and removes the folder', () => {
+        const idToRemove = 2;
+        const expectedFolders = testFolders.filter(folder => folder.id !== idToRemove);
+        return supertest(app)
+          .delete(`/api/folders/${idToRemove}`)
+          .expect(204)
+          .then(res =>
+            supertest(app)
+              .get('/api/folders')
+              .expect(expectedFolders)
+          )
+      });
+    });
+  });
+
+  describe(`PATCH /api/folders/:folder_id`, () => {
+    context(`Given no folders`, () => {
+      it(`responds with 404`, () => {
+        const folder_id = 123456;
+        return supertest(app)
+          .patch(`/api/folders/${folder_id}`)
+          .expect(404, { error: { message: `Folder doesn't exist` } })
+      });
+    });
+
+    context('Given there are folders in the database', () => {
+      const testFolders = makeFoldersArray();
+
+      beforeEach('insert folders', () => {
+        return db
+          .into('noteful_folders')
+          .insert(testFolders)
+      });
+
+      it('responds with 204 and updates the folder', () => {
+        const idToUpdate = 2
+        const updateFolder = {
+          folder_name: 'Trash'
+        }
+        const expectedFolder = {
+          ...testFolders[idToUpdate - 1],
+          ...updateFolder
+        }
+        return supertest(app)
+          .patch(`/api/folders/${idToUpdate}`)
+          .send(updateFolder)
+          .expect(204)
+          .then(res => 
+            supertest(app)
+              .get(`/api/folders/${idToUpdate}`)
+              .expect(expectedFolder)  
+          )
+      });
+
+      it ('responds with 400 when name not supplied', () => {
+        const idToUpdate = 2;
+        return supertest(app)
+          .patch(`/api/folders/${idToUpdate}`)
+          .send({ random: 'Rover' })
+          .expect(400, {
+            error: { message: `Request body must include folder name` }
           });
       });
     });
